@@ -46,13 +46,18 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=APIResponse[UserRead])
 async def get_my_profile(
     current_user: User = Depends(require_authenticated),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Get the current logged-in user's profile.
     """
+    # Re-fetch via repo to ensure addresses are loaded (require_authenticated might use a shared session or old instance)
+    from repositories.user_repository import get_by_id
+    user = await get_by_id(db, current_user.id)
+    
     return success_response(
         message="User profile fetched successfully",
-        data=current_user,
+        data=user or current_user,
     )
 
 @router.put("/{user_id}", response_model=APIResponse[UserRead])

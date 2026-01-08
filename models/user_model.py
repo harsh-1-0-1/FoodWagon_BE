@@ -50,6 +50,21 @@ class User(Base, TimestampMixin):
         default=False
     )
 
+    phone_number: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True
+    )
+
+    # ---------------- PROPERTIES ---------------- #
+
+    @property
+    def default_address(self):
+        """Returns the default address if it exists, else None."""
+        for address in self.addresses:
+            if address.is_default:
+                return address
+        return None
+
     # ---------------- RELATIONSHIPS ---------------- #
 
     # User → Orders (One-to-Many)

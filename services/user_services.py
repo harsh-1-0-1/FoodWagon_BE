@@ -30,6 +30,7 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
         name=user_in.name,
         email=user_in.email,
         hashed_password=hash_password(user_in.password),
+        phone_number=user_in.phone_number,
     )
 
     user = await user_repository.create(db, user)
@@ -67,8 +68,14 @@ async def update_user(db: AsyncSession, user_id: int, user_in: UserUpdate) -> Us
     if user_in.password is not None:
         user.hashed_password = hash_password(user_in.password)
 
+    if user_in.phone_number is not None:
+        user.phone_number = user_in.phone_number
+
     await db.commit()
     await db.refresh(user)
+
+    # Re-fetch with addresses to ensure Pydantic serialization works
+    user = await user_repository.get_by_id(db, user.id)
 
     logger.info(
         f"User updated successfully — user_id={user.id}, email={user.email}"

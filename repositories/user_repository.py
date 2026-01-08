@@ -10,6 +10,7 @@ All functions are async and use SQLAlchemy 2.0 async patterns:
 
 from typing import Optional
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user_model import User
@@ -30,14 +31,14 @@ async def create(db: AsyncSession, user: User) -> User:
 # --------------------------------------------------
 async def get_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
     result = await db.execute(
-        select(User).where(User.id == user_id)
+        select(User).where(User.id == user_id).options(selectinload(User.addresses))
     )
     return result.scalars().first()
 
 
 async def get_by_email(db: AsyncSession, email: str) -> Optional[User]:
     result = await db.execute(
-        select(User).where(User.email == email)
+        select(User).where(User.email == email).options(selectinload(User.addresses))
     )
     return result.scalars().first()
 
@@ -50,7 +51,7 @@ async def get_by_firebase_uid(
         return None
 
     result = await db.execute(
-        select(User).where(User.firebase_uid == firebase_uid)
+        select(User).where(User.firebase_uid == firebase_uid).options(selectinload(User.addresses))
     )
     return result.scalars().first()
 
