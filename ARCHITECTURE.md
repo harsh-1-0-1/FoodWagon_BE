@@ -63,6 +63,16 @@ graph TD
     Client --> PayAPI
     Client --> AddrAPI
 
+    %% Flow: Refresh Token
+    AuthAPI -- "1. Refresh Token" --> AuthSvc
+    AuthSvc -- "2. Sub/Type Check" --> UserRepo
+    AuthSvc -- "3. New Tokens" --> AuthAPI
+    AuthAPI -- "4. Token Rotation" --> Client
+
+    %% Flow: Profile
+    UserAPI -- "GET /me" --> UserSvc
+    UserSvc --> UserRepo
+
     AuthAPI --> AuthSvc
     UserAPI --> UserSvc
     RestAPI --> RestSvc

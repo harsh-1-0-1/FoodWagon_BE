@@ -12,7 +12,7 @@ from schemas.auth_schema import (
     RefreshRequest,
 )
 from schemas.response_schema import APIResponse, success_response
-from utils.jwt_utils import decode_token, create_access_token
+from utils.jwt_utils import decode_token, create_access_token, create_refresh_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -101,10 +101,22 @@ async def refresh_access_token(
     new_access_token = create_access_token(
         data={"sub": str(user.id)}
     )
+    
+    # Rotate refresh token (extend session)
+    new_refresh_token = create_refresh_token(
+        data={"sub": str(user.id)}
+    )
 
     result = {
         "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role,
+        },
     }
 
     return success_response(

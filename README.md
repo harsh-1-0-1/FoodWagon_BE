@@ -6,8 +6,10 @@ Food Wagon is a robust, asynchronous backend API for a multi-vendor food deliver
 
 -   **Authentication & Users**:
     -   JWT-based Authentication (Login/Register).
+    -   **Refresh Token Rotation**: Issue new access tokens with rolling refresh tokens.
+    -   **Profile API**: Fetch authenticated user details instantly.
     -   Role-Based Access Control (Admin, Restaurant Owner, User).
-    -   Profile & Address Management (Smart default logic).
+    -   **Address Management**: Full CRUD with smart default enforcement.
 -   **Restaurant Management**:
     -   Manage Restaurants, Categories, and Products.
     -   Filtering and Search.
