@@ -89,3 +89,6 @@ dist/
 # Docker
 # =========================
 docker-compose.override.yml
+
+
+*.png

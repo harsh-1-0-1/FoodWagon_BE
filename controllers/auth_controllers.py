@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import get_db
+from db.database import get_db
 from services.auth_services import authenticate_user
 from services.google_auth_service import authenticate_google_user
 from repositories.user_repository import get_by_id
@@ -11,6 +11,7 @@ from schemas.auth_schema import (
     TokenResponse,
     RefreshRequest,
 )
+from schemas.response_schema import APIResponse, success_response
 from utils.jwt_utils import decode_token, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -22,14 +23,19 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post(
     "/google",
-    response_model=TokenResponse,
+    response_model=APIResponse[TokenResponse],
     status_code=status.HTTP_200_OK,
 )
-def google_login(
+async def google_login(
     payload: GoogleAuthRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    return authenticate_google_user(db, payload.token)
+    result = await authenticate_google_user(db, payload.token)
+    return success_response(
+        message="Google authentication successful",
+        status_code=status.HTTP_200_OK,
+        data=result,
+    )
 
 
 # ==============================
@@ -38,17 +44,22 @@ def google_login(
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=APIResponse[TokenResponse],
     status_code=status.HTTP_200_OK,
 )
-def login(
+async def login(
     payload: LoginRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    return authenticate_user(
+    result = await authenticate_user(
         db=db,
         email=payload.email,
         password=payload.password,
+    )
+    return success_response(
+        message="Login successful",
+        status_code=status.HTTP_200_OK,
+        data=result,
     )
 
 
@@ -58,11 +69,12 @@ def login(
 
 @router.post(
     "/refresh",
+    response_model=APIResponse[TokenResponse],
     status_code=status.HTTP_200_OK,
 )
-def refresh_access_token(
+async def refresh_access_token(
     payload: RefreshRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     payload_data = decode_token(payload.refresh_token)
 
@@ -79,7 +91,7 @@ def refresh_access_token(
             detail="Invalid refresh token payload",
         )
 
-    user = get_by_id(db, int(user_id))
+    user = await get_by_id(db, int(user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -90,7 +102,13 @@ def refresh_access_token(
         data={"sub": str(user.id)}
     )
 
-    return {
+    result = {
         "access_token": new_access_token,
         "token_type": "bearer",
     }
+
+    return success_response(
+        message="Token refreshed successfully",
+        status_code=status.HTTP_200_OK,
+        data=result,
+    )

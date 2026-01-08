@@ -1,8 +1,15 @@
+"""
+Auth Dependencies - Async JWT Authentication
+
+Provides async dependency for extracting and validating the current user
+from JWT access tokens.
+"""
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import get_db
+from db.database import get_db
 from repositories.user_repository import get_by_id
 from utils.jwt_utils import decode_token
 from models.user_model import User
@@ -11,12 +18,17 @@ from models.user_model import User
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-def get_current_user(
+async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     Validate JWT access token and return current user.
+    
+    This is an async dependency that:
+    1. Extracts token from Authorization header (via oauth2_scheme)
+    2. Decodes and validates the JWT
+    3. Fetches user from database asynchronously
     """
 
     payload = decode_token(token)
@@ -35,7 +47,7 @@ def get_current_user(
             detail="Invalid token payload",
         )
 
-    user = get_by_id(db, int(user_id))
+    user = await get_by_id(db, int(user_id))
 
     if not user:
         raise HTTPException(

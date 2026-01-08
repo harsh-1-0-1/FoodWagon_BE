@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from sqlalchemy import String, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sqlalchemy import String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from db.database import Base
+from models.base_model import TimestampMixin
 
-from database import Base
 
-class User(Base):
+class User(Base, TimestampMixin):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -21,42 +21,62 @@ class User(Base):
 
     hashed_password: Mapped[str | None] = mapped_column(
         String(255),
-        nullable=True
-    )
-
-    firebase_uid: Mapped[str | None] = mapped_column(
-        String(128),
-        unique=True,
-        nullable=True,
-        index=True
-    )
-
-    auth_provider: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="password"
-    )
-
-    is_verified: Mapped[bool] = mapped_column(
-        nullable=False,
-        default=False
+        nullable=True  # Nullable for Google-only users
     )
 
     role: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        default="user"
+        default="user"  # user | admin | restaurant_owner | delivery
     )
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.now(timezone.utc),
+    # Google/Firebase authentication fields
+    firebase_uid: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=True
     )
 
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    auth_provider: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        default="email"  # email | google
+    )
+
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
         nullable=False,
-        default=datetime.now(timezone.utc),
-        onupdate=datetime.now(timezone.utc),
+        default=False
+    )
+
+    # ---------------- RELATIONSHIPS ---------------- #
+
+    # User → Orders (One-to-Many)
+    orders = relationship(
+        "Order",
+        back_populates="user",
+        cascade="all, delete"
+    )
+
+    # User → Addresses (One-to-Many)
+    addresses = relationship(
+        "Address",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # User → Cart (One-to-One)
+    cart = relationship(
+        "Cart",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
+    # User → Audit Logs (One-to-Many)
+    audit_logs = relationship(
+        "AuditLog",
+        back_populates="user",
+        cascade="all, delete"
     )

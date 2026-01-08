@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Payment Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>💳 Razorpay Test Flow</h1>
+
+    <!-- 1. Login -->
+    <div class="card" id="login-section">
+        <h3>1. Login</h3>
+        <input type="email" id="email" value="payment_test@example.com" placeholder="Email">
+        <input type="password" id="password" value="password123" placeholder="Password">
+        <button class="btn" onclick="login()">Login</button>
+        <p id="login-status"></p>
+    </div>
+
+    <!-- 2. Cart -->
+    <div class="card" id="cart-section" style="opacity: 0.5; pointer-events: none;">
+        <h3>2. Add Item to Cart</h3>
+        <p>Product ID (from seed): <input type="number" id="product-id" value="" placeholder="Enter Product ID"></p>
+        <button class="btn" onclick="addToCart()">Add to Cart</button>
+        <div id="cart-status"></div>
+    </div>
+
+    <!-- 3. Checkout -->
+    <div class="card" id="checkout-section" style="opacity: 0.5; pointer-events: none;">
+        <h3>3. Checkout (Create Order)</h3>
+        <button class="btn" onclick="checkout()">Checkout & Create Order</button>
+        <div id="order-details"></div>
+    </div>
+
+    <!-- 4. Payment -->
+    <div class="card" id="payment-section" style="opacity: 0.5; pointer-events: none;">
+        <h3>4. Pay with Razorpay</h3>
+        <button class="btn" id="pay-btn" onclick="startPayment()">Pay Now</button>
+        <div id="payment-result"></div>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:8000/api/v1"; // Updated to 8000 based on active server
+        let currentOrderId = null;
+        let razorpayKey = "";
+
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    token = data.data.access_token;
+                    document.getElementById("login-status").innerHTML = "<span class='success'>✅ Logged in!</span>";
+                    enableSection("cart-section");
+                } else {
+                    document.getElementById("login-status").innerHTML = `<span class='error'>❌ Error: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById("login-status").innerHTML = `<span class='error'>❌ Network Error</span>`;
+            }
+        }
+
+        async function addToCart() {
+            const productId = document.getElementById("product-id").value;
+            try {
+                const res = await fetch(`${API_URL}/cart/items`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ product_id: parseInt(productId), quantity: 1 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById("cart-status").innerHTML = "<span class='success'>✅ Item Added!</span>";
+                    enableSection("checkout-section");
+                } else {
+                    document.getElementById("cart-status").innerHTML = `<span class='error'>❌ Error: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (e) {
+                document.getElementById("cart-status").innerHTML = `<span class='error'>❌ Error</span>`;
+            }
+        }
+
+        async function checkout() {
+            try {
+                const res = await fetch(`${API_URL}/orders/checkout`, {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok && data.data) {
+                    currentOrderId = data.data.id;
+                    document.getElementById("order-details").innerHTML =
+                        `
+    <pre>Order Created!\nID: ${data.data.id}\nTotal: ₹${data.data.total_amount}</pre>`;
+                    enableSection("payment-section");
+                } else {
+                    document.getElementById("order-details").innerHTML = `<span class='error'>❌ Error: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (e) {
+                document.getElementById("order-details").innerHTML = `<span class='error'>❌ Error</span>`;
+            }
+        }
+
+        async function startPayment() {
+            if (!currentOrderId) return alert("No order ID");
+
+            try {
+                // 1. Create Session
+                const res = await fetch(`${API_URL}/payments/create-session`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ order_id: currentOrderId })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(JSON.stringify(data));
+
+                const session = data.data;
+                razorpayKey = session.key_id;
+
+                // 2. Open Razorpay
+                const options = {
+                    "key": razorpayKey,
+                    "amount": session.amount * 100, // Amount is already presumably correct from session response?
+                    // Wait, session response from create_payment_session_service returns 'amount' from order.
+                    // Razorpay JS expects paise if currency is INR.
+                    // Our backend create session service sends `PaymentSessionResponse` with `amount`.
+                    // The backend code created razorpay order with `amount * 100`.
+                    // But `PaymentSessionResponse` just has `amount`.
+                    // Let's assume the frontend needs to handle display or passing the raw order_id handles it.
+                    // Actually, if we pass `order_id` (the razorpay one), Razorpay knows the amount.
+                    "currency": session.currency,
+                    "name": "Food Wagon",
+                    "description": "Test Transaction",
+                    "order_id": session.order_id, // This is the RZP order ID
+                    "handler": function (response) {
+                        verifyPayment(response);
+                    },
+                    "prefill": {
+                        "name": "Test User",
+                        "email": "test@example.com",
+                        "contact": "9999999999"
+                    },
+                    "theme": { "color": "#3399cc" }
+                };
+
+                const rzp1 = new Razorpay(options);
+                rzp1.open();
+
+            } catch (e) {
+                document.getElementById("payment-result").innerHTML = `<span class='error'>❌ Init Error: ${e.message}</span>`;
+            }
+        }
+
+        async function verifyPayment(response) {
+            document.getElementById("payment-result").innerHTML = "Verifying...";
+            try {
+                const res = await fetch(`${API_URL}/payments/verify`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById("payment-result").innerHTML = "<span class='success'>🎉 Payment Successful & Verified! Order Confirmed.</span>";
+                } else {
+                    document.getElementById("payment-result").innerHTML = `<span class='error'>❌ Verification Failed: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (e) {
+                document.getElementById("payment-result").innerHTML = `<span class='error'>❌ Verify Network Error</span>`;
+            }
+        }
+
+        function enableSection(id) {
+            const el = document.getElementById(id);
+            el.style.opacity = "1";
+            el.style.pointerEvents = "auto";
+        }
+    </script>
+</body>
+
+</html>
