@@ -28,6 +28,7 @@ class Restaurant(Base, TimestampMixin):
     country: Mapped[str | None] = mapped_column(String(100))
     latitude: Mapped[float | None]
     longitude: Mapped[float | None]
+    phone_number: Mapped[str | None] = mapped_column(String(20))
 
     rating: Mapped[float | None]
 

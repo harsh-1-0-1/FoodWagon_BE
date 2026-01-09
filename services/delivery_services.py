@@ -78,9 +78,11 @@ async def dispatch_uber_delivery_service(db: AsyncSession, order: Order):
         if not user_address:
             raise ValueError("No delivery address found for user")
 
+        from utils.phone_utils import format_phone_uber
+
         pickup = {
             "pickup_name": restaurant.name,
-            "pickup_phone_number": "+15125551212", # Valid US test number
+            "pickup_phone_number": format_phone_uber(restaurant.phone_number),
             "pickup_address": json.dumps({
                 "street_address": [restaurant.street or ""],
                 "city": restaurant.city or "",
@@ -92,7 +94,7 @@ async def dispatch_uber_delivery_service(db: AsyncSession, order: Order):
         
         dropoff = {
             "dropoff_name": user.name,
-            "dropoff_phone_number": "+15125551212", # Valid US test number
+            "dropoff_phone_number": format_phone_uber(user.phone_number),
             "dropoff_address": json.dumps({
                 "street_address": [user_address.street],
                 "city": user_address.city,
