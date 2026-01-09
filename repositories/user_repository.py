@@ -22,8 +22,11 @@ from models.user_model import User
 async def create(db: AsyncSession, user: User) -> User:
     db.add(user)
     await db.commit()
-    await db.refresh(user)
-    return user
+    # Preload addresses for serialization (default_address property)
+    result = await db.execute(
+        select(User).where(User.id == user.id).options(selectinload(User.addresses))
+    )
+    return result.scalars().first()
 
 
 # --------------------------------------------------
@@ -80,8 +83,11 @@ async def get_by_email_or_firebase_uid(
 async def update(db: AsyncSession, user: User) -> User:
     db.add(user)
     await db.commit()
-    await db.refresh(user)
-    return user
+    # Preload addresses for serialization (default_address property)
+    result = await db.execute(
+        select(User).where(User.id == user.id).options(selectinload(User.addresses))
+    )
+    return result.scalars().first()
 
 
 # --------------------------------------------------
