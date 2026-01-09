@@ -14,6 +14,7 @@ from controllers.cart_controller import router as cart_router
 from controllers.order_controller import router as order_router
 from controllers.payment_controller import router as payment_router
 from controllers.address_controller import router as address_router
+from controllers.delivery_controller import router as delivery_router
 
 
 from schemas.response_schema import APIResponse
@@ -51,6 +52,7 @@ api_router.include_router(cart_router)
 api_router.include_router(order_router)
 api_router.include_router(payment_router)
 api_router.include_router(address_router)
+api_router.include_router(delivery_router)
 
 
 app.include_router(api_router)

@@ -93,6 +93,13 @@
         <div id="payment-result"></div>
     </div>
 
+    <!-- 5. Uber Direct Tracking -->
+    <div class="card" id="delivery-section" style="opacity: 0.5; pointer-events: none;">
+        <h3>5. Uber Direct Delivery Tracking</h3>
+        <button class="btn" onclick="fetchDeliveryStatus()">Refresh Tracking Info</button>
+        <div id="delivery-status-result"></div>
+    </div>
+
     <script>
         const API_URL = "http://localhost:8000/api/v1"; // Updated to 8000 based on active server
         let currentOrderId = null;
@@ -239,12 +246,42 @@
 
                 const data = await res.json();
                 if (res.ok) {
-                    document.getElementById("payment-result").innerHTML = "<span class='success'>🎉 Payment Successful & Verified! Order Confirmed.</span>";
+                    document.getElementById("payment-result").innerHTML = "<span class='success'>🎉 Payment Successful & Verified! Order Confirmed. Dispatching Uber Direct...</span>";
+                    enableSection("delivery-section");
+                    // Fetch status after a short delay to allow background dispatch
+                    setTimeout(fetchDeliveryStatus, 2000);
                 } else {
                     document.getElementById("payment-result").innerHTML = `<span class='error'>❌ Verification Failed: ${JSON.stringify(data)}</span>`;
                 }
             } catch (e) {
                 document.getElementById("payment-result").innerHTML = `<span class='error'>❌ Verify Network Error</span>`;
+            }
+        }
+
+        async function fetchDeliveryStatus() {
+            if (!currentOrderId) return;
+            document.getElementById("delivery-status-result").innerHTML = "Fetching...";
+            try {
+                const res = await fetch(`${API_URL}/delivery/${currentOrderId}/status`, {
+                    method: "GET",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok && data.data) {
+                    const d = data.data;
+                    let html = `<pre>Status: ${d.uber_api?.status || "Processing"}\n`;
+                    if (d.tracking_url) {
+                        html += `Tracking Link: <a href="${d.tracking_url}" target="_blank">${d.tracking_url}</a>\n`;
+                    } else {
+                        html += `Tracking Link: Not available yet\n`;
+                    }
+                    html += `Raw Data: ${JSON.stringify(d.uber_api || {}, null, 2)}</pre>`;
+                    document.getElementById("delivery-status-result").innerHTML = html;
+                } else {
+                    document.getElementById("delivery-status-result").innerHTML = `<span class='error'>❌ Error: ${JSON.stringify(data)}</span>`;
+                }
+            } catch (e) {
+                document.getElementById("delivery-status-result").innerHTML = `<span class='error'>❌ Network Error</span>`;
             }
         }
 

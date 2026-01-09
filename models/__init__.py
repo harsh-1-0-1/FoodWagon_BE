@@ -10,6 +10,7 @@ from .cart_model import Cart
 from .cart_item_model import CartItem
 from .payment_model import Payment
 from .audit_log_model import AuditLog
+from .inventory_history_model import InventoryHistory
 
 __all__ = [
     "User",
@@ -24,5 +25,6 @@ __all__ = [
     "CartItem",
     "Payment",
     "AuditLog",
+    "InventoryHistory",
 ]
 

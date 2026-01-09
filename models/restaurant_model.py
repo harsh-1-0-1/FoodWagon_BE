@@ -20,6 +20,15 @@ class Restaurant(Base, TimestampMixin):
         nullable=False,
     )
 
+    # Address fields for delivery
+    street: Mapped[str | None] = mapped_column(String(255))
+    city: Mapped[str | None] = mapped_column(String(100))
+    state: Mapped[str | None] = mapped_column(String(100))
+    postal_code: Mapped[str | None] = mapped_column(String(20))
+    country: Mapped[str | None] = mapped_column(String(100))
+    latitude: Mapped[float | None]
+    longitude: Mapped[float | None]
+
     rating: Mapped[float | None]
 
     # Relationships

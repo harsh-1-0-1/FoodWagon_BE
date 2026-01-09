@@ -12,12 +12,16 @@ async def create_order(
     db: AsyncSession, 
     user_id: int, 
     restaurant_id: int, 
-    total_amount: float
+    total_amount: float,
+    delivery_fee: float = 0.0,
+    uber_quote_id: Optional[str] = None
 ) -> Order:
     order = Order(
         user_id=user_id,
         restaurant_id=restaurant_id,
         total_amount=total_amount,
+        delivery_fee=delivery_fee,
+        uber_quote_id=uber_quote_id,
         status="pending",
         payment_status="unpaid"
     )
@@ -52,7 +56,8 @@ async def get_order_by_id(db: AsyncSession, order_id: int) -> Order | None:
         select(Order)
         .where(Order.id == order_id)
         .options(
-            selectinload(Order.items).selectinload(OrderItem.product)
+            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.restaurant)
         )
     )
     return result.scalars().first()
@@ -64,7 +69,8 @@ async def get_user_orders(db: AsyncSession, user_id: int) -> List[Order]:
         .where(Order.user_id == user_id)
         .order_by(Order.created_at.desc())
         .options(
-            selectinload(Order.items).selectinload(OrderItem.product)
+            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.restaurant)
         )
     )
     return result.scalars().all()

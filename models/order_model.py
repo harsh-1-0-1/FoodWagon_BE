@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import String, Numeric, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +39,12 @@ class Order(Base, TimestampMixin):
         nullable=False,
         default="unpaid"  # unpaid | paid | failed | refunded
     )
+
+    # Uber Direct Fields
+    uber_quote_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    uber_delivery_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    uber_tracking_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    delivery_fee: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, server_default="0.0")
 
    
 

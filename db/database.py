@@ -14,15 +14,13 @@ from sqlalchemy.ext.asyncio import (
     AsyncSession,
 )
 from sqlalchemy.orm import declarative_base
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from sqlalchemy.orm import declarative_base
+from core.config import settings
 
 # Get sync DATABASE_URL and convert to async driver
 # postgresql://... -> postgresql+asyncpg://...
 # sqlite:///... -> sqlite+aiosqlite:///...
-SYNC_DATABASE_URL = os.getenv("DATABASE_URL")
+SYNC_DATABASE_URL = settings.DATABASE_URL
 
 if SYNC_DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = SYNC_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)

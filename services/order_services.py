@@ -13,12 +13,15 @@ from models.order_model import Order
 from repositories import order_repository, cart_repository
 from services.cart_services import get_cart_service
 from services.inventory_services import decrease_stock_service
+from services.delivery_services import get_uber_quote_service
 from schemas.order_schema import OrderResponse, OrderItemResponse
 from utils.logger_utils import get_logger
 
 
 logger = get_logger(__name__)
 
+
+import traceback
 
 async def place_order_service(db: AsyncSession, user: User) -> OrderResponse:
     logger.info("Placing order | user_id=%s", user.id)
@@ -34,27 +37,6 @@ async def place_order_service(db: AsyncSession, user: User) -> OrderResponse:
         )
 
     # 2. Validate Inventory & Group by Restaurant (Simplification: 1 Order per Cart for now)
-    # NOTE: If we want multi-restaurant support, we'd split orders here.
-    # For now, let's assume we take the first item's restaurant or validate mixed cart?
-    # Let's check if there are multiple restaurants.
-    
-    # Actually, we need to fetch the cart items directly to check availability more deeply or trust get_cart_service?
-    # get_cart_service returns schemas. We might need DB objects for locking? 
-    # For simplicity in this step:
-    # We will decrement stock for each item. If fails, entire transaction rolls back.
-    
-    # Determine Restaurant ID (assuming single restaurant cart policy, or taking first)
-    # A robust system would block mixed carts or split orders.
-    # Let's assume single-restaurant for now or just grab from first item.
-    # We need to fetch product details again to get restaurant_id.
-    
-    # Strategy: Just loop items, getting product details is implicit in cart, but cart schema has product name only.
-    # We need to trust the cart or re-fetch.
-    
-    # 1. Create Order Skeleton
-    # Just generic restaurant_id for now? Or do we enforce it?
-    # Let's use the first item's restaurant if possible. 
-    # Since we don't have restaurant_id in schema, let's fetch cart again from repo to get relationships.
     db_cart = await cart_repository.get_cart_by_user_id(db, user.id)
     if not db_cart or not db_cart.items:
          logger.warning("Order placement failed: db cart empty/missing | user_id=%s", user.id)
@@ -62,30 +44,42 @@ async def place_order_service(db: AsyncSession, user: User) -> OrderResponse:
 
     restaurant_id = db_cart.items[0].product.restaurant_id # Take first item's restaurant
     
-    # 2. Create Order
+    # 2. Get Delivery Quote (Optional: only if restaurant and user addresses are set)
+    user_address = next((a for a in db_cart.user.addresses if a.is_default), db_cart.user.addresses[0] if db_cart.user.addresses else None)
+    
+    uber_quote_id = None
+    delivery_fee = 0.0
+    
+    if user_address and db_cart.items[0].product.restaurant.street:
+        try:
+            quote_data = await get_uber_quote_service(db, db_cart.items[0].product.restaurant, user_address)
+            uber_quote_id = quote_data["quote_id"]
+            delivery_fee = quote_data["fee"]
+        except Exception as e:
+            logger.warning(f"Could not get Uber quote: {str(e)}")
+            # For now, we proceed with 0 fee if quote fails, or we could block checkout
+            pass
+
+    total_with_delivery = cart.total_price + delivery_fee
+
+    # 3. Create Order
     order = await order_repository.create_order(
         db, 
         user.id, 
         restaurant_id, 
-        cart.total_price
+        total_with_delivery,
+        delivery_fee=delivery_fee,
+        uber_quote_id=uber_quote_id
     )
     
     logger.info(
-        "Order created | order_id=%s restaurant_id=%s total=%s", 
-        order.id, restaurant_id, cart.total_price
+        "Order created | order_id=%s restaurant_id=%s total=%s delivery_fee=%s", 
+        order.id, restaurant_id, total_with_delivery, delivery_fee
     )
     
     # 3. Create Order Items & Update Inventory
     items_data = []
     for item in db_cart.items:
-        # Check and reduce stock (this locks rows)
-        # Verify restaurant match if enforcing single restaurant?
-        if item.product.restaurant_id != restaurant_id:
-             # If mixed cart, this simple approach fails. 
-             # For MVP, we proceed or raise error. 
-             # Let's proceed, assuming restaurant_id is primary vendor.
-             pass
-
         await decrease_stock_service(
              db, 
              item.product.category_id, 
@@ -97,7 +91,7 @@ async def place_order_service(db: AsyncSession, user: User) -> OrderResponse:
         items_data.append({
             "product_id": item.product_id,
             "quantity": item.quantity,
-            "price": float(item.price_at_time) # Or current price? Cart locks price_at_time.
+            "price": float(item.price_at_time) 
         })
 
     await order_repository.create_order_items(db, order.id, items_data)
@@ -108,7 +102,6 @@ async def place_order_service(db: AsyncSession, user: User) -> OrderResponse:
     await cart_repository.clear_cart(db, cart.id)
     
     # 5. Return Order Response
-    # Re-fetch completely to match schema
     full_order = await order_repository.get_order_by_id(db, order.id)
     
     return OrderResponse.model_validate(full_order)

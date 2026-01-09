@@ -39,6 +39,10 @@ class OrderResponse(OrderBase):
     status: str
     total_amount: float
     payment_status: str
+    delivery_fee: float = 0.0
+    uber_quote_id: Optional[str] = None
+    uber_delivery_id: Optional[str] = None
+    uber_tracking_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse] = []

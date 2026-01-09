@@ -1,17 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from os import getenv
-
 from jose import jwt, JWTError
 from fastapi import HTTPException, status
-from dotenv import load_dotenv
 
-load_dotenv()
+from core.config import settings
 
-SECRET_KEY = getenv("SECRET_KEY")
-ALGORITHM = getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 ISSUER = "fastapi-backend"
 

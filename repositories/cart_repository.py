@@ -13,7 +13,8 @@ async def get_cart_by_user_id(db: AsyncSession, user_id: int) -> Cart | None:
         select(Cart)
         .where(Cart.user_id == user_id)
         .options(
-            selectinload(Cart.items).selectinload(CartItem.product)
+            selectinload(Cart.user).selectinload(User.addresses),
+            selectinload(Cart.items).selectinload(CartItem.product).selectinload(Product.restaurant)
         )
     )
     return result.scalars().first()

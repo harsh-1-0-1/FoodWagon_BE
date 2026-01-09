@@ -12,14 +12,15 @@ from fastapi import HTTPException, status
 from models.user_model import User
 from repositories import payment_repository, order_repository
 from schemas.payment_schema import PaymentCreate, PaymentVerify, PaymentSessionResponse, PaymentResponse
+from services.delivery_services import dispatch_uber_delivery_service
+from core.config import settings
 from utils.logger_utils import get_logger
 
 logger = get_logger(__name__)
 
 # Initialize Razorpay Client
-# In a real app, these should be loaded from env securely
-RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_placeholder")
-RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "secret_placeholder")
+RAZORPAY_KEY_ID = settings.RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET = settings.RAZORPAY_KEY_SECRET
 
 try:
     razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
@@ -132,8 +133,18 @@ async def verify_payment_service(
     order = await order_repository.get_order_by_id(db, payment.order_id)
     if order:
         order.payment_status = "paid"
-        order.status = "confirmed" # Auto-confirm on payment?
+        order.status = "confirmed" # Auto-confirm on payment
         await db.commit()
+        await db.refresh(order) # Refresh to ensure attributes are available for dispatch
+        
+        # 3. Dispatch to Uber Direct
+        logger.info(f"Triggering Uber Direct dispatch for order {order.id}")
+        try:
+            await dispatch_uber_delivery_service(db, order)
+            logger.info(f"Uber Direct dispatch completed for order {order.id}")
+        except Exception as e:
+            logger.error(f"Post-payment delivery dispatch failed for order {order.id}: {str(e)}")
+            # We don't fail the verification since payment is already confirmed
     
     logger.info("Payment verified and order updated | order_id=%s", payment.order_id)
     
