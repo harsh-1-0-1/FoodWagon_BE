@@ -269,15 +269,27 @@
                 const data = await res.json();
                 if (res.ok && data.data) {
                     const d = data.data;
-                    let html = `<pre>Status: ${d.uber_api?.status || "Processing"}\n`;
-                    if (d.tracking_url) {
-                        html += `Tracking Link: <a href="${d.tracking_url}" target="_blank">${d.tracking_url}</a>\n`;
+                    let html = `<div style="padding: 10px; border-radius: 4px; background: #fffbe6; border: 1px solid #ffe58f; margin-bottom: 10px;">`;
+                    
+                    if (d.status === "awaiting_payment") {
+                        html += `<b>⚠️ Status:</b> Awaiting Payment<br>Please complete the payment in step 4 to trigger delivery.`;
+                    } else if (d.status === "pending_dispatch") {
+                        html += `<b>⏳ Status:</b> Processing Dispatch...<br>Uber is being notified of your order.`;
                     } else {
-                        html += `Tracking Link: Not available yet\n`;
+                        html += `<b>✅ Status:</b> ${d.status}`;
                     }
-                    html += `Raw Data: ${JSON.stringify(d.uber_api || {}, null, 2)}</pre>`;
+                    html += `</div>`;
+
+                    if (d.tracking_url) {
+                        html += `<b>🔗 Tracking Link:</b> <a href="${d.tracking_url}" target="_blank">View on Uber Map</a><br><br>`;
+                    } else if (d.status !== "awaiting_payment") {
+                        html += `<b>🔗 Tracking Link:</b> Generating...<br><br>`;
+                    }
+
+                    html += `<pre style="font-size: 11px;">Raw Uber API Data:\n${JSON.stringify(d.uber_api || {}, null, 2)}</pre>`;
                     document.getElementById("delivery-status-result").innerHTML = html;
-                } else {
+                }
+ else {
                     document.getElementById("delivery-status-result").innerHTML = `<span class='error'>❌ Error: ${JSON.stringify(data)}</span>`;
                 }
             } catch (e) {

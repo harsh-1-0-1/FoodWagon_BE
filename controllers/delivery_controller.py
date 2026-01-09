@@ -26,12 +26,24 @@ async def get_order_delivery_status(
     if order.user_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
 
+    if order.payment_status != "paid":
+        return success_response(
+            message="Payment required to initiate delivery",
+            data={
+                "status": "awaiting_payment",
+                "local_status": order.status,
+                "uber_api": None,
+                "tracking_url": None
+            }
+        )
+
     if not order.uber_delivery_id:
         return success_response(
-            message="No Uber delivery active for this order",
+            message="Delivery is being processed",
             data={
-                "status": "local_processing", 
+                "status": "pending_dispatch", 
                 "local_status": order.status,
+                "uber_api": None,
                 "tracking_url": None
             }
         )
@@ -41,6 +53,7 @@ async def get_order_delivery_status(
         return success_response(
             message="Delivery status fetched successfully",
             data={
+                "status": status_data.get("status", "unknown"),
                 "uber_api": status_data,
                 "tracking_url": order.uber_tracking_url
             }
