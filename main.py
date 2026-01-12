@@ -18,6 +18,7 @@ from controllers.delivery_controller import router as delivery_router
 
 
 from schemas.response_schema import APIResponse
+from core.config import settings
 import utils.firebase  # IMPORTANT
 import models
 
@@ -32,13 +33,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# DEV / NGROK SAFE
+# Secure CORS Configuration
+# Standard local origins
+origins = [
+    "http://localhost",
+    "http://localhost:5173",  # Vite
+    "http://localhost:3000",  # React/Next
+    "http://127.0.0.1",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+# Add custom origins from settings (e.g. production domain if set in .env)
+if settings.CORS_ORIGINS and "*" not in settings.CORS_ORIGINS:
+    origins.extend(settings.CORS_ORIGINS)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # Vite
-        "http://localhost:3000",   # React (if used)
-    ],
+    allow_origins=origins,
+    # Always allow ngrok subdomains via regex for convenience and security
+    allow_origin_regex=r"https://.*\.ngrok-free\.app|https://.*\.ngrok\.io",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

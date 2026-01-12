@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+from typing import Optional, List
 
 class Settings(BaseSettings):
     # App Settings
@@ -24,6 +24,9 @@ class Settings(BaseSettings):
 
     # Firebase (Optional)
     FIREBASE_CREDENTIALS: Optional[str] = None
+
+    # CORS
+    CORS_ORIGINS: List[str] = []
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
