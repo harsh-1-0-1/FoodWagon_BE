@@ -16,6 +16,7 @@ class OrderItemCreate(OrderItemBase):
 class OrderItemResponse(OrderItemBase):
     id: int
     product_name: str
+    image_urls: List[str]
 
     class Config:
         from_attributes = True

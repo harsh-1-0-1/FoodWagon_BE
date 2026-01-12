@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel
 
 
@@ -7,14 +8,15 @@ class OrderItemBase(BaseModel):
 
 
 class OrderItemCreate(OrderItemBase):
-    order_id: str
-    product_id: str
+    order_id: int
+    product_id: int
 
 
 class OrderItemResponse(OrderItemBase):
-    id: str
-    order_id: str
-    product_id: str
+    id: int
+    order_id: int
+    product_id: int
+    image_urls: List[str]
 
     class Config:
         from_attributes = True

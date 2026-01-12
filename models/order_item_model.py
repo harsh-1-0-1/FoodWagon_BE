@@ -41,3 +41,9 @@ class OrderItem(Base):
     @property
     def product_name(self) -> str:
         return self.product.name if self.product else "Unknown Product"
+
+    @property
+    def image_urls(self) -> list[str]:
+        if self.product and self.product.image_url:
+            return [self.product.image_url]
+        return []

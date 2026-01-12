@@ -35,7 +35,10 @@ app = FastAPI(
 # DEV / NGROK SAFE
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",   # Vite
+        "http://localhost:3000",   # React (if used)
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
