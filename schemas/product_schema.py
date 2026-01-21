@@ -21,8 +21,14 @@ class ProductBase(BaseModel):
 # =========================
 # Create Schema (POST)
 # =========================
-class ProductCreate(ProductBase):
-    pass
+class ProductCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    price: float = Field(..., gt=0)
+    category_name: str = Field(..., min_length=1)
+    restaurant_id: int
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    is_available: Optional[bool] = True
 
 
 # =========================

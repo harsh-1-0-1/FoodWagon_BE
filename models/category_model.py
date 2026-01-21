@@ -10,19 +10,10 @@ class Category(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     is_active: Mapped[bool] = mapped_column(default=True)
-    stock: Mapped[int] = mapped_column(default=0, nullable=False)
-
-    restaurant_id: Mapped[int] = mapped_column(
-        ForeignKey("restaurants.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True
-    )
 
     # Relationships
-    restaurant = relationship("Restaurant", back_populates="categories")
-
     products = relationship(
         "Product",
         back_populates="category",

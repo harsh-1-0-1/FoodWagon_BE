@@ -60,7 +60,7 @@ async def get_my_profile(
         data=user or current_user,
     )
 
-@router.put("/{user_id}", response_model=APIResponse[UserRead])
+@router.patch("/{user_id}", response_model=APIResponse[UserRead])
 async def update_user_profile(
     user_id: int,
     user: UserUpdate,

@@ -65,7 +65,22 @@ async def create_product_service(
             detail="Product already exists for this restaurant",
         )
 
-    created_product = await product_repository.create(db, product)
+    # Resolve category_name to category_id
+    from repositories import category_repository
+    category = await category_repository.get_by_name(db, product.category_name)
+    if not category:
+        logger.warning(
+            "Category not found during product creation | category_name=%s",
+            product.category_name,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Category '{product.category_name}' not found",
+        )
+
+    created_product = await product_repository.create_with_category_id(
+        db, product, category.id
+    )
 
     logger.info(
         "Product created successfully | product_id=%s",

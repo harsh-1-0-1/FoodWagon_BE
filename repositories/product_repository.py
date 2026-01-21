@@ -20,13 +20,23 @@ async def create(
     db: AsyncSession,
     product: ProductCreate
 ) -> Product:
+    # Note: This might need adjustment if we want to support the old way, 
+    # but for now we'll favor create_with_category_id
+    pass
+
+
+async def create_with_category_id(
+    db: AsyncSession,
+    product: ProductCreate,
+    category_id: int
+) -> Product:
     db_product = Product(
         name=product.name,
         description=product.description,
         price=product.price,
         image_url=product.image_url,
         is_available=product.is_available,
-        category_id=product.category_id,
+        category_id=category_id,
         restaurant_id=product.restaurant_id,
     )
 

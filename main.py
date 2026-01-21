@@ -15,6 +15,7 @@ from controllers.order_controller import router as order_router
 from controllers.payment_controller import router as payment_router
 from controllers.address_controller import router as address_router
 from controllers.delivery_controller import router as delivery_router
+from controllers.favorite_controller import router as favorite_router
 
 
 from schemas.response_schema import APIResponse
@@ -42,6 +43,8 @@ origins = [
     "http://127.0.0.1",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
 ]
 
 # Add custom origins from settings (e.g. production domain if set in .env)
@@ -51,12 +54,32 @@ if settings.CORS_ORIGINS and "*" not in settings.CORS_ORIGINS:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    # Always allow ngrok subdomains via regex for convenience and security
-    allow_origin_regex=r"https://.*\.ngrok-free\.app|https://.*\.ngrok\.io",
+    # Browsers require exact origin and allow_credentials=True.
+    # The regex approach satisfies this while allowing dynamic subdomains (ngrok).
+    allow_origin_regex=r".*" if settings.DEBUG else r"https?://.*\.ngrok-free\..*|https?://.*\.ngrok\.io|https?://localhost(:[0-9]+)?|https?://127\.0\.0\.1(:[0-9]+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Optional: Add a logger to see why requests might be failing
+@app.middleware("http")
+async def debug_logging_middleware(request: Request, call_next):
+    if settings.DEBUG:
+        if request.method == "OPTIONS":
+             print(f"DEBUG: OPTIONS request | Origin: {request.headers.get('origin')} | Host: {request.headers.get('host')} | Path: {request.url.path}")
+        
+        try:
+            response = await call_next(request)
+            if response.status_code == 400:
+                print(f"DEBUG: 400 Bad Request | Method: {request.method} | Path: {request.url.path} | Origin: {request.headers.get('origin')}")
+            return response
+        except Exception as e:
+            print(f"DEBUG: Exception during {request.method} {request.url.path}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise e
+    return await call_next(request)
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(user_router)
@@ -70,6 +93,7 @@ api_router.include_router(order_router)
 api_router.include_router(payment_router)
 api_router.include_router(address_router)
 api_router.include_router(delivery_router)
+api_router.include_router(favorite_router)
 
 
 app.include_router(api_router)

@@ -11,6 +11,7 @@ from .cart_item_model import CartItem
 from .payment_model import Payment
 from .audit_log_model import AuditLog
 from .inventory_history_model import InventoryHistory
+from .favorite_model import Favorite
 
 __all__ = [
     "User",
@@ -26,5 +27,6 @@ __all__ = [
     "Payment",
     "AuditLog",
     "InventoryHistory",
+    "Favorite",
 ]
 

@@ -9,7 +9,7 @@ class CategoryBase(BaseModel):
 
 
 class CategoryCreate(CategoryBase):
-    restaurant_id: int
+    pass
 
 
 class CategoryUpdate(BaseModel):
@@ -19,7 +19,6 @@ class CategoryUpdate(BaseModel):
 
 class CategoryResponse(CategoryBase):
     id: int
-    restaurant_id: int
     created_at: datetime
     updated_at: datetime
 

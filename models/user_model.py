@@ -95,3 +95,10 @@ class User(Base, TimestampMixin):
         back_populates="user",
         cascade="all, delete"
     )
+
+    # User → Favorites (One-to-Many)
+    favorites = relationship(
+        "Favorite",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )

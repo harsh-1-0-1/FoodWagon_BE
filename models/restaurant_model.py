@@ -39,12 +39,6 @@ class Restaurant(Base, TimestampMixin):
         cascade="all, delete"
     )
 
-    categories = relationship(
-        "Category",
-        back_populates="restaurant",
-        cascade="all, delete-orphan"
-    )
-
     products = relationship(
         "Product",
         back_populates="restaurant",

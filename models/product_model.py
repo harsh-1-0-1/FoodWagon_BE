@@ -54,3 +54,10 @@ class Product(Base, TimestampMixin):
         "OrderItem",
         back_populates="product"
     )
+
+    # Product → Favorites (One-to-Many)
+    favorites = relationship(
+        "Favorite",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
